@@ -73,6 +73,8 @@
       </select>
     </div>
     <input type="text" placeholder="input your username" id="username">
+    <input type="checkbox" id="log" name="log" title="ログを保存して送る" checked="true">
+    <label for="log">ログを保存して送る</label>
     <div id="div_start">
       <button id="start_button" onclick="startButton(event)">start</button>
     </div>
@@ -212,11 +214,12 @@
 
     var final_transcript = '';
     var recognizing = false;
+    var recognition = null;
     if (!('webkitSpeechRecognition' in window)) {
       upgrade();
     } else {
       var recognition = new webkitSpeechRecognition();
-      recognition.continuous = true;
+      // recognition.continuous = false;
       recognition.interimResults = true;
 
       recognition.onstart = function () {
@@ -282,6 +285,8 @@
         recognition.stop();
         return;
       }
+      recognition.continuous = document.getElementById("log").checked;
+      console.log(document.getElementById("log").checked)
       final_transcript = '';
       recognition.lang = select_dialect.value;
       recognition.start();
