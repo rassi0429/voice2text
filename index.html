@@ -319,22 +319,16 @@
       recognition.interimResults = true;
 
       recognition.onstart = function () {
-        const username = document.getElementById("username").value
-        if (!username) {
-          alert("username を入れてください。")
-          recognition.stop();
-          return
-        } else {
-          wsconnection = new WebSocket("wss://wsecho.kokoa.dev/voice2text/" + username);
-          recognizing = true;
-          console.log('info_speak_now');
-          start_button.innerHTML = 'STOP';
-        }
+        const username = document.getElementById("username").value;
+        wsconnection = new WebSocket("wss://wsecho.kokoa.dev/voice2text/" + username);
+        recognizing = true;
+        console.log('info_speak_now');
+        start_button.innerHTML = 'STOP';
       };
 
       recognition.onend = function () {
         recognizing = false;
-        startButton()
+        start_button.innerHTML = 'START';
       };
 
       recognition.onresult = function (event) {
@@ -381,6 +375,13 @@
         recognition.stop();
         return;
       }
+      
+      const username = document.getElementById("username").value;
+      if (!username) {
+        alert("username を入れてください。");
+        return;
+      }
+      
       recognition.continuous = document.getElementById("log").checked;
       console.log(document.getElementById("log").checked)
       final_transcript = '';
