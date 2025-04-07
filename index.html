@@ -4,82 +4,178 @@
 <head>
   <meta charset="utf-8">
   <meta content="initial-scale=1, minimum-scale=1, width=device-width" name="viewport">
+  <title>Voice to Text</title>
   <style>
-    #info {
-      font-size: 20px;
+    :root {
+      --primary-blue: #2563eb;
+      --secondary-blue: #3b82f6;
+      --accent-blue: #1e40af;
+      --light-blue: #dbeafe;
+      --white: #ffffff;
+      --light-gray: #f3f4f6;
+      --dark-gray: #374151;
     }
 
-    #headline {
-      text-decoration: none
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--dark-gray);
+      background-color: var(--light-gray);
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: var(--white);
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background-color: var(--primary-blue);
+      color: var(--white);
+      padding: 20px;
+      text-align: center;
+    }
+
+    .content {
+      padding: 20px;
     }
 
     #results {
-      font-size: 14px;
-      font-weight: bold;
-      border: 1px solid #ddd;
-      padding: 15px;
+      font-size: 16px;
+      font-weight: normal;
+      border: 1px solid var(--light-blue);
+      border-radius: 8px;
+      padding: 20px;
       text-align: left;
       min-height: 150px;
+      background-color: var(--white);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      margin-bottom: 20px;
     }
 
-
     .interim {
-      color: gray;
+      color: #6b7280;
+      font-style: italic;
     }
 
     .final {
-      color: black;
+      color: var(--dark-gray);
       padding-right: 3px;
     }
 
-    .button {
-      display: none;
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
     }
 
-    .marquee {
-      margin: 20px auto;
+    .language-selection {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
     }
 
-    #buttons {
+    select, input[type="text"] {
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 16px;
+      background-color: var(--white);
+      flex-grow: 1;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--secondary-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       margin: 10px 0;
-      position: relative;
-      top: -50px;
     }
 
-    #copy {
-      margin-top: 20px;
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary-blue);
     }
 
-    #copy>div {
-      display: none;
-      margin: 0 70px;
+    #start_button {
+      background-color: var(--primary-blue);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      width: 100%;
+      margin-top: 10px;
+      text-transform: uppercase;
     }
-  </style>
-  <style>
-    a.c1 {
-      font-weight: normal;
+
+    #start_button:hover {
+      background-color: var(--accent-blue);
+    }
+
+    #start_button:active {
+      transform: translateY(2px);
+    }
+
+    @media (max-width: 600px) {
+      .language-selection {
+        flex-direction: column;
+        align-items: stretch;
+      }
     }
   </style>
 </head>
 
-<body class="" id="grid">
-  <div class="browser-landing" id="main">
-    <div id="results">
-      <span class="final" id="final_span"></span> <span class="interim" id="interim_span"></span>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Voice to Text</h1>
     </div>
-    <div class="compact marquee" id="div_language">
-      <select id="select_language" onchange="updateCountry()">
-      </select>&nbsp;&nbsp; <select id="select_dialect">
-      </select>
-    </div>
-    <input type="text" placeholder="input your username" id="username">
-    <input type="checkbox" id="log" name="log" title="ログを保存して送る" checked="true">
-    <label for="log">ログを保存して送る</label>
-    <div id="div_start">
-      <button id="start_button" onclick="startButton(event)">start</button>
+    <div class="content">
+      <div id="results">
+        <span class="final" id="final_span"></span> <span class="interim" id="interim_span"></span>
+      </div>
+      
+      <div class="controls">
+        <div class="language-selection">
+          <select id="select_language" onchange="updateCountry()"></select>
+          <select id="select_dialect"></select>
+        </div>
+        
+        <input type="text" placeholder="Enter your username" id="username">
+        
+        <div class="checkbox-container">
+          <input type="checkbox" id="log" name="log" title="ログを保存して送る" checked="true">
+          <label for="log">ログを保存して送る</label>
+        </div>
+        
+        <div id="div_start">
+          <button id="start_button" onclick="startButton(event)">START</button>
+        </div>
+      </div>
     </div>
   </div>
-  </div>
+
   <script>
     var langs =
       [['Afrikaans', ['af-ZA']],
@@ -280,7 +376,7 @@
       return s.replace(first_char, function (m) { return m.toUpperCase(); });
     }
 
-    function startButton() {
+    function startButton(event) {
       if (recognizing) {
         recognition.stop();
         return;
@@ -290,10 +386,9 @@
       final_transcript = '';
       recognition.lang = select_dialect.value;
       recognition.start();
-      start_button.innerHTML = 'stop';
+      start_button.innerHTML = 'STOP';
       console.log('info_allow');
     }
-
   </script>
 </body>
 
