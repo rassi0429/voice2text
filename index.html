@@ -282,10 +282,10 @@
 
     let wsconnection = null
 
-    function sendWSData() {
+    function sendWSData(text) {
       if (wsconnection) {
-        console.log(results.innerText)
-        wsconnection.send(results.innerText)
+        console.log("Sending:", text || results.innerText);
+        wsconnection.send(text || results.innerText);
       }
     }
 
@@ -327,30 +327,64 @@
       };
 
       recognition.onend = function () {
+        // If the user manually stopped recognition, update UI
+        if (document.getElementById("start_button").innerHTML === 'STOP') {
+          // If the recognition ended but the button still shows STOP,
+          // it means it wasn't manually stopped by the user
+          console.log("Recognition ended unexpectedly, restarting...");
+          
+          // Only restart if we're not in a manual stop state
+          if (!document.getElementById("log").checked) {
+            // When log is not checked, we want to restart recognition automatically
+            recognition.start();
+            return;
+          }
+        }
+        
         recognizing = false;
         start_button.innerHTML = 'START';
       };
 
       recognition.onresult = function (event) {
         var interim_transcript = '';
+        var current_segment = '';
+        var is_log_enabled = document.getElementById("log").checked;
+        
         if (typeof (event.results) == 'undefined') {
           recognition.onend = null;
           recognition.stop();
           upgrade();
           return;
         }
+        
         for (var i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
-            final_transcript += event.results[i][0].transcript;
-            final_transcript += "<br>"
+            var segment = event.results[i][0].transcript;
+            current_segment += segment;
+            
+            if (is_log_enabled) {
+              // When log is checked, accumulate all segments
+              final_transcript += segment;
+              final_transcript += "<br>";
+            } else {
+              // When log is not checked, only keep the current segment
+              final_transcript = segment + "<br>";
+            }
           } else {
             interim_transcript += event.results[i][0].transcript;
           }
         }
+        
         final_transcript = capitalize(final_transcript);
-        final_span.innerHTML = linebreak(final_transcript)
+        final_span.innerHTML = linebreak(final_transcript);
         interim_span.innerHTML = linebreak(interim_transcript);
-        sendWSData()
+        
+        // Send the current segment if available, otherwise send the full text
+        if (current_segment) {
+          sendWSData(current_segment);
+        } else {
+          sendWSData();
+        }
       };
     }
 
