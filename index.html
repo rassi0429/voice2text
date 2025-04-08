@@ -165,7 +165,7 @@
         <input type="text" placeholder="Enter your username" id="username">
         
         <div class="checkbox-container">
-          <input type="checkbox" id="log" name="log" title="ログを保存して送る" checked="true">
+          <input type="checkbox" id="log" name="log" title="ログを保存して送る">
           <label for="log">ログを保存して送る</label>
         </div>
         
@@ -177,6 +177,25 @@
   </div>
 
   <script>
+    // Parse URL query parameters and set form values on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      // Set username from URL parameter if present
+      const usernameParam = urlParams.get('username');
+      if (usernameParam) {
+        document.getElementById('username').value = usernameParam;
+      }
+      
+      // Set log checkbox from URL parameter if present
+      const logParam = urlParams.get('log');
+      if (logParam !== null) {
+        // Convert string to boolean: 'true', '1', 'yes' are true, everything else is false
+        const logEnabled = ['true', '1', 'yes'].includes(logParam.toLowerCase());
+        document.getElementById('log').checked = logEnabled;
+      }
+    });
+
     var langs =
       [['Afrikaans', ['af-ZA']],
       ['አማርኛ', ['am-ET']],
