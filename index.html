@@ -280,12 +280,65 @@
       ['हिन्दी', ['hi-IN']],
       ['ภาษาไทย', ['th-TH']]];
 
-    let wsconnection = null
+    let wsconnection = null;
+    let reconnectAttempts = 0;
+    let maxReconnectAttempts = 10;
+    let reconnectTimeout = null;
+    let wsUrl = "";
+    
+    function connectWebSocket(username) {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
+      
+      wsUrl = "wss://wsecho.kokoa.dev/voice2text/" + username;
+      wsconnection = new WebSocket(wsUrl);
+      
+      wsconnection.onopen = function() {
+        console.log("WebSocket connection established");
+        reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+      };
+      
+      wsconnection.onclose = function(event) {
+        console.log("WebSocket connection closed", event);
+        attemptReconnect();
+      };
+      
+      wsconnection.onerror = function(error) {
+        console.error("WebSocket error:", error);
+        // The onclose event will be called after this, triggering reconnection
+      };
+    }
+    
+    function attemptReconnect() {
+      if (reconnectAttempts >= maxReconnectAttempts) {
+        console.log("Maximum reconnection attempts reached");
+        return;
+      }
+      
+      // Calculate delay with exponential backoff (1s, 2s, 4s, 8s, etc.)
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+      console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+      
+      reconnectTimeout = setTimeout(function() {
+        reconnectAttempts++;
+        
+        // Only reconnect if we're still in recognizing state
+        if (recognizing) {
+          console.log("Reconnecting to WebSocket...");
+          const username = document.getElementById("username").value;
+          connectWebSocket(username);
+        }
+      }, delay);
+    }
 
     function sendWSData(text) {
-      if (wsconnection) {
+      if (wsconnection && wsconnection.readyState === WebSocket.OPEN) {
         console.log("Sending:", text || results.innerText);
         wsconnection.send(text || results.innerText);
+      } else if (wsconnection && wsconnection.readyState !== WebSocket.CONNECTING) {
+        console.log("WebSocket not connected, cannot send data");
       }
     }
 
@@ -320,7 +373,7 @@
 
       recognition.onstart = function () {
         const username = document.getElementById("username").value;
-        wsconnection = new WebSocket("wss://wsecho.kokoa.dev/voice2text/" + username);
+        connectWebSocket(username);
         recognizing = true;
         console.log('info_speak_now');
         start_button.innerHTML = 'STOP';
@@ -343,6 +396,17 @@
         
         recognizing = false;
         start_button.innerHTML = 'START';
+        
+        // Close WebSocket connection when recognition stops
+        if (wsconnection) {
+          wsconnection.close();
+          
+          // Clear any pending reconnection attempts
+          if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+          }
+        }
       };
 
       recognition.onresult = function (event) {
