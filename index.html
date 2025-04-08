@@ -304,33 +304,50 @@
     let maxReconnectAttempts = 10;
     let reconnectTimeout = null;
     let wsUrl = "";
+    let wsIsConnecting = false;
     
     function connectWebSocket(username) {
+      // If already connected or in the process of connecting, don't create a new connection
+      if (wsconnection && (wsconnection.readyState === WebSocket.OPEN || 
+                          wsconnection.readyState === WebSocket.CONNECTING) ||
+          wsIsConnecting) {
+        console.log("WebSocket already connected or connecting");
+        return;
+      }
+      
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
         reconnectTimeout = null;
       }
       
+      wsIsConnecting = true;
       wsUrl = "wss://wsecho.kokoa.dev/voice2text/" + username;
       wsconnection = new WebSocket(wsUrl);
       
       wsconnection.onopen = function() {
         console.log("WebSocket connection established");
         reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+        wsIsConnecting = false;
       };
       
       wsconnection.onclose = function(event) {
         console.log("WebSocket connection closed", event);
-        attemptReconnect();
+        wsIsConnecting = false;
+        
+        // Only attempt to reconnect if we're still in recognizing state
+        if (recognizing) {
+          attemptReconnect(username);
+        }
       };
       
       wsconnection.onerror = function(error) {
         console.error("WebSocket error:", error);
+        wsIsConnecting = false;
         // The onclose event will be called after this, triggering reconnection
       };
     }
     
-    function attemptReconnect() {
+    function attemptReconnect(username) {
       if (reconnectAttempts >= maxReconnectAttempts) {
         console.log("Maximum reconnection attempts reached");
         return;
@@ -346,7 +363,6 @@
         // Only reconnect if we're still in recognizing state
         if (recognizing) {
           console.log("Reconnecting to WebSocket...");
-          const username = document.getElementById("username").value;
           connectWebSocket(username);
         }
       }, delay);
@@ -392,7 +408,15 @@
 
       recognition.onstart = function () {
         const username = document.getElementById("username").value;
-        connectWebSocket(username);
+        
+        // Only connect WebSocket if it's not already connected or connecting
+        // This prevents creating a new connection when recognition is automatically restarted
+        if (!wsconnection || 
+            (wsconnection.readyState !== WebSocket.OPEN && 
+             wsconnection.readyState !== WebSocket.CONNECTING)) {
+          connectWebSocket(username);
+        }
+        
         recognizing = true;
         console.log('info_speak_now');
         start_button.innerHTML = 'STOP';
@@ -408,6 +432,7 @@
           // Only restart if we're not in a manual stop state
           if (!document.getElementById("log").checked) {
             // When log is not checked, we want to restart recognition automatically
+            // Keep the WebSocket connection open when automatically restarting
             recognition.start();
             return;
           }
@@ -416,7 +441,7 @@
         recognizing = false;
         start_button.innerHTML = 'START';
         
-        // Close WebSocket connection when recognition stops
+        // Only close WebSocket connection when recognition is manually stopped
         if (wsconnection) {
           wsconnection.close();
           
